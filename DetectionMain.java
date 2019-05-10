@@ -52,6 +52,9 @@ public class DetectionMain  {
         capture.read(capImg);
         initialImg = (BufferedImage) HighGui.toBufferedImage(capImg);
 
+        centerHistory = new ArrayList<Point>();
+
+        setBestHue();
     }
 
 
@@ -89,6 +92,10 @@ public class DetectionMain  {
             modifiedImg = (BufferedImage) HighGui.toBufferedImage(imgFin);
 
             p = center;
+
+        }else{
+
+            System.out.println("Camera couldn't snap");
 
         }
 
@@ -174,11 +181,11 @@ public class DetectionMain  {
 
         Core.copyTo(img, matDiff, bgMask);
 
-        Imgproc.medianBlur(matDiff, matDiff, 5); //Filtre médian
+        Imgproc.medianBlur(matDiff, matDiff, 3); //Filtre médian
 
-        Imgproc.morphologyEx(matDiff, matRet, MORPH_OPEN, Imgproc.getStructuringElement(MORPH_RECT, new Size(5, 5))); //On retire les derniers amas de pixels qui subsistent après le filtre
+        Imgproc.morphologyEx(matDiff, matRet, MORPH_OPEN, Imgproc.getStructuringElement(MORPH_RECT, new Size(3, 3))); //On retire les derniers amas de pixels qui subsistent après le filtre
 
-        return matDiff;
+        return matRet;
 
     }
 

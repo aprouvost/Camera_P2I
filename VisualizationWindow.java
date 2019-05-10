@@ -13,6 +13,7 @@ public class VisualizationWindow extends JFrame implements ActionListener, Chang
     private JPanel content, tweaks;
     private JSlider hue, hueThresh, satThresh, valThresh;
     private JButton resetHue;
+    private JLabel img1, img2;
 
     private DetectionMain detector;
 
@@ -21,6 +22,9 @@ public class VisualizationWindow extends JFrame implements ActionListener, Chang
         detector  = d;
         initialImage = d.getInitialImg();
         modifiedImage = d.getModifiedImg();
+
+        img1 = new JLabel();
+        img2 = new JLabel();
 
         content = new JPanel();
         content.setLayout(new FlowLayout());
@@ -41,6 +45,7 @@ public class VisualizationWindow extends JFrame implements ActionListener, Chang
         hue.setMajorTickSpacing(10);
         hue.setMinorTickSpacing(1);
         hue.setPaintTicks(true);
+        hue.addChangeListener(this);
 
         hueThresh = new JSlider(0, 180, 5);
         hueThresh.add(new JLabel(("Hue threshold")));
@@ -48,6 +53,7 @@ public class VisualizationWindow extends JFrame implements ActionListener, Chang
         hueThresh.setMajorTickSpacing(10);
         hueThresh.setMinorTickSpacing(1);
         hueThresh.setPaintTicks(true);
+        hueThresh.addChangeListener(this);
 
         satThresh = new JSlider(0, 255, 100);
         satThresh.add(new JLabel(("Saturation threshold")));
@@ -55,12 +61,14 @@ public class VisualizationWindow extends JFrame implements ActionListener, Chang
         satThresh.setMajorTickSpacing(10);
         satThresh.setMinorTickSpacing(1);
         satThresh.setPaintTicks(true);
+        satThresh.addChangeListener(this);
 
         valThresh = new JSlider(0, 255, 100);
         valThresh.add(new JLabel(("Value threshold")));
         valThresh.setMajorTickSpacing(10);
         valThresh.setMinorTickSpacing(1);
         valThresh.setPaintTicks(true);
+        valThresh.addChangeListener(this);
 
         //Le bouton pour recalculer le meilleur hue
         resetHue = new JButton("Reset Hue");
@@ -73,9 +81,13 @@ public class VisualizationWindow extends JFrame implements ActionListener, Chang
         tweaks.add(valThresh);
         tweaks.add(resetHue);
 
+        content.add(img1);
+        content.add(img2);
         content.add(tweaks);
 
         setDefaultCloseOperation(WindowConstants.EXIT_ON_CLOSE);
+        setContentPane(content);
+        pack();
         setVisible(true);
 
     }
@@ -89,6 +101,24 @@ public class VisualizationWindow extends JFrame implements ActionListener, Chang
 
     public void stateChanged(ChangeEvent e){
 
+        detector.setHue(hue.getValue());
+        System.out.println("Hue :" + hue.getValue());
+        detector.setHueThresh(hueThresh.getValue());
+        detector.setSatThresh(satThresh.getValue());
+        detector.setValThresh(valThresh.getValue());
+
+    }
+
+    public void update(){
+
+        initialImage = detector.getInitialImg();
+        modifiedImage = detector.getModifiedImg();
+
+        img1.setIcon(new ImageIcon(initialImage));
+        img2.setIcon(new ImageIcon(modifiedImage));
+
+        pack();
+        repaint();
 
     }
 }

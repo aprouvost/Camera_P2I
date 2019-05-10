@@ -7,13 +7,15 @@ import java.awt.*;
 import java.awt.event.*;
 import java.awt.image.BufferedImage;
 
-public class VisualizationWindow extends JFrame implements ActionListener, ChangeListener{
+public class VisualizationWindow extends JFrame implements ActionListener, ChangeListener, KeyListener  {
 
     private BufferedImage initialImage, modifiedImage;
     private JPanel content, tweaks;
     private JSlider hue, hueThresh, satThresh, valThresh;
     private JButton resetHue;
     private JLabel img1, img2;
+    private boolean panic= false;
+
 
     private DetectionMain detector;
 
@@ -29,8 +31,10 @@ public class VisualizationWindow extends JFrame implements ActionListener, Chang
         content = new JPanel();
         content.setLayout(new FlowLayout());
 
+
         JPanel tweaks = new JPanel(); //Le panel pour les sliders
         tweaks.setLayout(new BoxLayout(tweaks, BoxLayout.Y_AXIS));
+
 
         /*
         Création des sliders.
@@ -74,6 +78,9 @@ public class VisualizationWindow extends JFrame implements ActionListener, Chang
         resetHue = new JButton("Reset Hue");
         resetHue.addActionListener(this);
 
+        // Ajout panic button
+
+
 
         tweaks.add(hue);
         tweaks.add(hueThresh);
@@ -97,6 +104,7 @@ public class VisualizationWindow extends JFrame implements ActionListener, Chang
 
         hue.setValue(detector.getHue());
 
+
     }
 
     public void stateChanged(ChangeEvent e){
@@ -108,6 +116,8 @@ public class VisualizationWindow extends JFrame implements ActionListener, Chang
         detector.setValThresh(valThresh.getValue());
 
     }
+
+
 
     public void update(){
 
@@ -121,4 +131,26 @@ public class VisualizationWindow extends JFrame implements ActionListener, Chang
         repaint();
 
     }
+
+
+
+    public boolean getPanic(){
+        return panic;
+    }
+
+    public void keyPressed(KeyEvent e){
+        if (e.getKeyCode() == KeyEvent.VK_ESCAPE) {
+            panic=true;
+            System.out.println("Panic");
+        }
+    }
+
+    public void keyReleased( KeyEvent e){
+        if (e.getKeyCode() == KeyEvent.VK_ESCAPE) {
+            panic=false;
+            System.out.println("Released Panic");
+        }
+        System.out.println(e);
+    }
+    public void keyTyped( KeyEvent e){}
 }

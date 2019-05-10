@@ -61,7 +61,7 @@ public class DetectionMain  {
     }
 
 
-    public Point getHandCoordinates() {
+    public int[] getHandCoordinates() {
 
         Point p = new Point(-1,-1);
 
@@ -105,7 +105,11 @@ public class DetectionMain  {
 
         }
 
-        return p;
+        int[] ret = new int[2];
+
+        ret[0] = (int) p.x;
+        ret[1] = (int) p.y;
+        return ret;
 
     }
 

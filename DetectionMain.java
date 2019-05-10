@@ -6,9 +6,12 @@ import org.opencv.imgproc.Imgproc;
 import org.opencv.video.BackgroundSubtractor;
 import org.opencv.video.Video;
 import org.opencv.videoio.VideoCapture;
+import org.opencv.imgproc.Moments;
 
 import java.awt.image.BufferedImage;
+import java.lang.reflect.Array;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 
 import static org.opencv.imgproc.Imgproc.*;
@@ -79,19 +82,22 @@ public class DetectionMain  {
             if(center.x != -1) {
                 centerHistory.add(0, center);
 
-                if (centerHistory.size() > 9)
+                if (centerHistory.size() > 5)
                     centerHistory.remove(centerHistory.size() - 1);
             }
 
+
             Imgproc.cvtColor(imgFin, imgFin, COLOR_GRAY2BGR);
 
+            p = hannWindow(centerHistory);
             Imgproc.rectangle(imgFin, ext[0], ext[1], new Scalar(0, 255, 0));
             Imgproc.circle(imgFin, center, 5, new Scalar(255,0,0));
+            Imgproc.circle( imgFin, p, 5, new Scalar(255,0,255));
 
             initialImg = (BufferedImage) HighGui.toBufferedImage(capImg);
             modifiedImg = (BufferedImage) HighGui.toBufferedImage(imgFin);
 
-            p = center;
+            //p = center;
 
         }else{
 
@@ -197,8 +203,8 @@ public class DetectionMain  {
 
         ArrayList<MatOfPoint> contours = new ArrayList<MatOfPoint>();
 
-        // ArrayList<int> xCoordinatesMassCenter = new ArrayList<int>(); //Tous les x des points de contours
-        //ArrayList<int> yCoordinatesMassCenter= new ArrayList<int>(); // Tous les y des points de contours
+        ArrayList<Integer> xCoordinates = new ArrayList<Integer>(); //Tous les x des points de contours
+        ArrayList<Integer> yCoordinates= new ArrayList<Integer>(); // Tous les y des points de contours
         int sumX=0;
         int sumY=0;
 
@@ -222,6 +228,9 @@ public class DetectionMain  {
                     sumX+= (int) p.x;
                     sumY+= (int) p.y;
 
+                    yCoordinates.add( (int)p.y);
+                    xCoordinates.add((int)p.x);
+
                     if (p.x > maxx) maxx = (int) p.x;
                     if (p.x < minx) minx = (int) p.x;
 
@@ -232,13 +241,38 @@ public class DetectionMain  {
 
             }
 
+            //Calcul centre de masses avec méthode des moments
+
+
+            Moments moments = Imgproc.moments( img);
+            Point center= new Point();
+            center.x= moments.get_m10() / moments.get_m00();
+            center.y= moments.get_m01() / moments.get_m00();
+
+
+            // Calcul centre de masses avec méthode de la médiane
+
+            Point mass = new Point();
+            Collections.sort(xCoordinates);
+            Collections.sort(yCoordinates);
+
+            if (xCoordinates.size()%2==0) {
+                mass.x = (int)(xCoordinates.get((xCoordinates.size()/ 2)) + xCoordinates.get((xCoordinates.size()/ 2)+1))/2;
+            } else {
+                mass.x= (int) xCoordinates.get(xCoordinates.size()/2);
+            }
+            if (yCoordinates.size()%2==0) {
+                mass.y=  (int)(yCoordinates.get((yCoordinates.size()/ 2)) + yCoordinates.get((yCoordinates.size()/ 2)+1))/2;
+            } else{
+                mass.y= (int) yCoordinates.get(yCoordinates.size()/2);
+            }
 
 
             Point centerOfMass= new Point(sumY/numberOfPoints,sumX/ numberOfPoints);
 
             ret[0] = new Point(minx, miny);
             ret[1] = new Point(maxx, maxy);
-            ret[2]= centerOfMass;
+            ret[2]= mass;
             return ret;
 
         } else {
@@ -248,6 +282,35 @@ public class DetectionMain  {
             ret[2] = ret[0];
             return ret;
         }
+
+    }
+
+    public Point hannWindow(List<Point> list){
+
+        double sumx = 0;
+        double sumy = 0;
+        double sumcoefs = 0;
+
+        for(int i = 0; i < list.size()-1; i++){
+
+            Point current = list.get(i);
+
+            if(current.x > -1) {
+
+                double coef = Math.pow(Math.sin((Math.PI * i) / (list.size() - 1)), 2);
+                sumcoefs += coef;
+
+
+                sumx += current.x * coef;
+                sumy += current.y * coef;
+            }
+
+        }
+
+        int x = (int) (sumx/sumcoefs);
+        int y = (int) (sumy/sumcoefs);
+
+        return new Point(x,y);
 
     }
 

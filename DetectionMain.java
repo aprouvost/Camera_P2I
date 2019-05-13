@@ -27,6 +27,7 @@ public class DetectionMain  {
     private Point center;
     private  VideoCapture capture;
     private ArrayList<Point> centerHistory;
+    private boolean handDetected = false;
 
 
     /* Constructeur de la classe
@@ -75,15 +76,21 @@ public class DetectionMain  {
 
             imgFin = subBackground(colMask, bg);
 
+            Core.flip(imgFin, imgFin, 1);
+            Core.flip(capImg, capImg, 1);
+
             Point[] ext = findExtPoints(imgFin);
 
             Point center = new Point((ext[0].x + ext[1].x )/ 2, (ext[0].y + ext[1].y) / 2);
 
             if(center.x != -1) {
+                handDetected = true;
                 centerHistory.add(0, center);
 
                 if (centerHistory.size() > 5)
                     centerHistory.remove(centerHistory.size() - 1);
+            }else{
+                handDetected = false;
             }
 
 
@@ -115,7 +122,11 @@ public class DetectionMain  {
 
 
 
+    public boolean isHandDetected(){
 
+        return handDetected;
+
+    }
 
 
 

@@ -48,9 +48,9 @@ public class Main {
             c = d.getHandCoordinates();
             w.update();
 
-            if(panic == false){
+            if(panic == false && d.isHandDetected() == true){
 
-                r.mouseMove((int) 2.13 * c[0], (int) 1.6 * c[1]);
+                r.mouseMove((int) 3 * c[0], (int) 2.25 * c[1]);
 
             }
 

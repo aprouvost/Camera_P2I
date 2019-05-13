@@ -15,6 +15,13 @@ public class Main {
 
         Robot r = new Robot();
 
+        Dimension screenSize= Toolkit.getDefaultToolkit().getScreenSize();
+        double coeffX= ((double) screenSize.getWidth())/d.getDimension().getWidth();
+        double coeffY= ((double) screenSize.getHeight())/ d.getDimension().getHeight();
+
+        System.out.println("coef x : "+ coeffX);
+        System.out.println(" coeff y:"+ coeffY);
+
 
 
         int[] c = new int[2];
@@ -50,7 +57,7 @@ public class Main {
 
             if(panic == false && d.isHandDetected() == true){
 
-                r.mouseMove((int) 3 * c[0], (int) 2.25 * c[1]);
+                r.mouseMove((int) coeffX* c[0], (int) coeffY * c[1]);
 
             }
 

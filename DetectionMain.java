@@ -1,6 +1,7 @@
 package Camera_P2I;
 
 import org.opencv.core.*;
+import org.opencv.core.Point;
 import org.opencv.highgui.HighGui;
 import org.opencv.imgproc.Imgproc;
 import org.opencv.video.BackgroundSubtractor;
@@ -8,6 +9,7 @@ import org.opencv.video.Video;
 import org.opencv.videoio.VideoCapture;
 import org.opencv.imgproc.Moments;
 
+import java.awt.*;
 import java.awt.image.BufferedImage;
 import java.lang.reflect.Array;
 import java.util.ArrayList;
@@ -28,6 +30,7 @@ public class DetectionMain  {
     private  VideoCapture capture;
     private ArrayList<Point> centerHistory;
     private boolean handDetected = false;
+    private Dimension tailleCam;
 
 
     /* Constructeur de la classe
@@ -50,10 +53,15 @@ public class DetectionMain  {
         colMask = new Mat();
         imgFin = new Mat();
 
+
+
         this.bg = Video.createBackgroundSubtractorMOG2();
 
         //Affichage de la première image pour être sûr que la caméra fonctionne
         capture.read(capImg);
+        tailleCam= new Dimension( capImg.width(), capImg.height());
+        System.out.println("width " +tailleCam.getWidth()+ " height " + tailleCam.getHeight());
+
         initialImg = (BufferedImage) HighGui.toBufferedImage(capImg);
 
         centerHistory = new ArrayList<Point>();
@@ -390,6 +398,10 @@ public class DetectionMain  {
 
     public void setSatThresh(int satThresh) {
         this.satThresh = satThresh;
+    }
+
+    public Dimension getDimension (){
+        return tailleCam;
     }
 
 

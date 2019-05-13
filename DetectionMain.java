@@ -21,7 +21,7 @@ import static org.opencv.imgproc.Imgproc.*;
 
 public class DetectionMain  {
 
-    private Mat capImg,  colMask, imgFin;  //Matrice de capture //Image filtrée N&B  //Image après traitement
+    private Mat rawImg, capImg,  colMask, imgFin;  //Matrice de capture //Image filtrée N&B  //Image après traitement
     private BufferedImage initialImg, modifiedImg;  //Image à afficher
     private BackgroundSubtractor bg; //Objet OpenCV pour supprimer l'arrière plan
     private Point[] ext;
@@ -31,6 +31,7 @@ public class DetectionMain  {
     private ArrayList<Point> centerHistory;
     private boolean handDetected = false;
     private Dimension tailleCam;
+    private Rect mask;
 
 
     /* Constructeur de la classe
@@ -49,6 +50,7 @@ public class DetectionMain  {
             return;
         }
 
+        rawImg = new Mat();
         capImg = new Mat();
         colMask = new Mat();
         imgFin = new Mat();
@@ -58,7 +60,11 @@ public class DetectionMain  {
         this.bg = Video.createBackgroundSubtractorMOG2();
 
         //Affichage de la première image pour être sûr que la caméra fonctionne
-        capture.read(capImg);
+        capture.read(rawImg);
+        mask = getCropMask(rawImg);
+
+        capImg = getCropedImg(rawImg, mask);
+
         tailleCam= new Dimension( capImg.width(), capImg.height());
         System.out.println("width " +tailleCam.getWidth()+ " height " + tailleCam.getHeight());
 
@@ -74,11 +80,11 @@ public class DetectionMain  {
 
         Point p = new Point(-1,-1);
 
-        if (capture.read(capImg)) {
+        if (capture.read(rawImg)) {
 
             //Traitement de l'image
 
-
+            capImg = getCropedImg(rawImg, mask);
 
             colMask = getFilteredImage(capImg, new Scalar(hue - hueThresh, satThresh, valThresh), new Scalar(hue + hueThresh, 255, 255));
 
@@ -404,6 +410,25 @@ public class DetectionMain  {
         return tailleCam;
     }
 
+    public Rect getCropMask(Mat img){
+
+        Mat gray = new Mat();
+
+        Imgproc.cvtColor(img, gray, COLOR_BGR2GRAY);
+
+        ArrayList<MatOfPoint> contours = new ArrayList<MatOfPoint>();
+        Mat hierarchy = new Mat();
+        Imgproc.findContours(gray, contours, hierarchy, RETR_EXTERNAL, Imgproc.CHAIN_APPROX_SIMPLE);
+
+        return Imgproc.boundingRect(contours.get(0));
+
+    }
+
+    public Mat getCropedImg(Mat img, Rect mask){
+
+        return new Mat(img, mask);
+
+    }
 
 }
 

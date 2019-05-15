@@ -11,12 +11,11 @@ import org.opencv.imgproc.Moments;
 
 import java.awt.*;
 import java.awt.image.BufferedImage;
-import java.lang.reflect.Array;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
-import static org.opencv.imgproc.Imgproc.*;
+
 
 
 public class DetectionMain  {
@@ -24,14 +23,13 @@ public class DetectionMain  {
     private Mat rawImg, capImg,  colMask, imgFin;  //Matrice de capture //Image filtrée N&B  //Image après traitement
     private BufferedImage initialImg, modifiedImg;  //Image à afficher
     private BackgroundSubtractor bg; //Objet OpenCV pour supprimer l'arrière plan
-    private Point[] ext;
     private int hue, hueThresh, valThresh, satThresh;
-    private Point center;
     private  VideoCapture capture;
     private ArrayList<Point> centerHistory;
     private boolean handDetected = false;
     private Dimension tailleCam;
-    private Rect mask;
+    private Rect croppedBlackBars, croppedWorkRegion;
+    private double workFieldPercentage = 0.90;
 
 
     /* Constructeur de la classe
@@ -60,12 +58,26 @@ public class DetectionMain  {
         this.bg = Video.createBackgroundSubtractorMOG2();
 
         //Affichage de la première image pour être sûr que la caméra fonctionne
+
         capture.read(rawImg);
-        mask = getCropMask(rawImg);
+        croppedBlackBars = getCropMask(rawImg);
 
-        capImg = getCropedImg(rawImg, mask);
+        System.out.println(croppedBlackBars);
 
-        tailleCam= new Dimension( capImg.width(), capImg.height());
+        croppedWorkRegion = croppedBlackBars.clone();
+
+
+        croppedWorkRegion.x += 0.05 * croppedBlackBars.width;
+        croppedWorkRegion.y += 0.05 * croppedBlackBars.height;
+        croppedWorkRegion.height = (int) (0.90 * croppedBlackBars.height);
+        croppedWorkRegion.width = (int) (0.90 * croppedBlackBars.width);
+
+
+        System.out.println(croppedWorkRegion);
+
+        capImg = getCroppedImg(rawImg, croppedBlackBars);
+
+        tailleCam= new Dimension( croppedWorkRegion.width, croppedWorkRegion.height);
         System.out.println("width " +tailleCam.getWidth()+ " height " + tailleCam.getHeight());
 
         initialImg = (BufferedImage) HighGui.toBufferedImage(capImg);
@@ -84,22 +96,27 @@ public class DetectionMain  {
 
             //Traitement de l'image
 
-            capImg = getCropedImg(rawImg, mask);
+            Core.flip(rawImg, rawImg,1);
+
+            capImg = getCroppedImg(rawImg, croppedWorkRegion);
 
             colMask = getFilteredImage(capImg, new Scalar(hue - hueThresh, satThresh, valThresh), new Scalar(hue + hueThresh, 255, 255));
 
             imgFin = subBackground(colMask, bg);
 
-            Core.flip(imgFin, imgFin, 1);
-            Core.flip(capImg, capImg, 1);
-
             Point[] ext = findExtPoints(imgFin);
 
-            Point center = new Point((ext[0].x + ext[1].x )/ 2, (ext[0].y + ext[1].y) / 2);
+            Point center = ext[2];
 
             if(center.x != -1) {
                 handDetected = true;
-                centerHistory.add(0, center);
+
+                if(centerHistory.size() > 4 && (Math.abs(center.x-centerHistory.get(0).x) > 2 || Math.abs(center.y-centerHistory.get(0).y) > 2)) {
+                    centerHistory.add(0, center);
+                    //System.out.println(centerHistory.size());
+                }else{
+                    centerHistory.add(0, center);
+                }
 
                 if (centerHistory.size() > 5)
                     centerHistory.remove(centerHistory.size() - 1);
@@ -108,15 +125,18 @@ public class DetectionMain  {
             }
 
 
-            Imgproc.cvtColor(imgFin, imgFin, COLOR_GRAY2BGR);
+            Imgproc.cvtColor(imgFin, imgFin, Imgproc.COLOR_GRAY2BGR);
 
             p = hannWindow(centerHistory);
             Imgproc.rectangle(imgFin, ext[0], ext[1], new Scalar(0, 255, 0));
             Imgproc.circle(imgFin, center, 5, new Scalar(255,0,0));
             Imgproc.circle( imgFin, p, 5, new Scalar(255,0,255));
 
-            initialImg = (BufferedImage) HighGui.toBufferedImage(capImg);
+            Imgproc.rectangle(rawImg, croppedWorkRegion, new Scalar(0,0,255));
+
+            initialImg = (BufferedImage) HighGui.toBufferedImage(rawImg);
             modifiedImg = (BufferedImage) HighGui.toBufferedImage(imgFin);
+
 
             //p = center;
 
@@ -198,7 +218,7 @@ public class DetectionMain  {
         Mat imgHSV = new Mat(); //Matrice HSV
         Mat colMask = new Mat(); //Image filtrée
 
-        Imgproc.cvtColor(img, imgHSV, COLOR_BGR2HSV); //Conversion au format HSV
+        Imgproc.cvtColor(img, imgHSV, Imgproc.COLOR_BGR2HSV); //Conversion au format HSV
 
         Core.inRange(imgHSV, lowerBound, upperBound, colMask);
 
@@ -218,7 +238,7 @@ public class DetectionMain  {
 
         Imgproc.medianBlur(matDiff, matDiff, 3); //Filtre médian
 
-        Imgproc.morphologyEx(matDiff, matRet, MORPH_OPEN, Imgproc.getStructuringElement(MORPH_RECT, new Size(3, 3))); //On retire les derniers amas de pixels qui subsistent après le filtre
+        Imgproc.morphologyEx(matDiff, matRet, Imgproc.MORPH_OPEN, Imgproc.getStructuringElement(Imgproc.MORPH_RECT, new Size(3, 3))); //On retire les derniers amas de pixels qui subsistent après le filtre
 
         return matRet;
 
@@ -301,7 +321,7 @@ public class DetectionMain  {
 
             ret[0] = new Point(minx, miny);
             ret[1] = new Point(maxx, maxy);
-            ret[2]= mass;
+            ret[2]= center;
             return ret;
 
         } else {
@@ -410,21 +430,22 @@ public class DetectionMain  {
         return tailleCam;
     }
 
+
     public Rect getCropMask(Mat img){
 
         Mat gray = new Mat();
 
-        Imgproc.cvtColor(img, gray, COLOR_BGR2GRAY);
+        Imgproc.cvtColor(img, gray, Imgproc.COLOR_BGR2GRAY);
 
         ArrayList<MatOfPoint> contours = new ArrayList<MatOfPoint>();
         Mat hierarchy = new Mat();
-        Imgproc.findContours(gray, contours, hierarchy, RETR_EXTERNAL, Imgproc.CHAIN_APPROX_SIMPLE);
+        Imgproc.findContours(gray, contours, hierarchy, Imgproc.RETR_EXTERNAL, Imgproc.CHAIN_APPROX_SIMPLE);
 
         return Imgproc.boundingRect(contours.get(0));
 
     }
 
-    public Mat getCropedImg(Mat img, Rect mask){
+    public Mat getCroppedImg(Mat img, Rect mask){
 
         return new Mat(img, mask);
 

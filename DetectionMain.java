@@ -26,10 +26,13 @@ public class DetectionMain  {
     private int hue, hueThresh, valThresh, satThresh;
     private  VideoCapture capture;
     private ArrayList<Point> centerHistory;
-    private boolean handDetected = false;
-    private Dimension tailleCam;
-    private Rect croppedBlackBars, croppedWorkRegion;
-    private double workFieldPercentage = 0.90;
+    private boolean handDetected = false, panic = false;
+    private Dimension tailleMax, tailleCam, screenSize;
+    private Rect croppedBlackBars, croppedWorkRegion, detectedRegion;
+    private double workFieldPercentage = 0.85;
+    private Point lastCenter;
+    private Robot myRobot;
+    private double coeffX, coeffY;
 
 
     /* Constructeur de la classe
@@ -53,7 +56,12 @@ public class DetectionMain  {
         colMask = new Mat();
         imgFin = new Mat();
 
+        detectedRegion = new Rect();
 
+        hue = 75;
+        hueThresh = 5;
+        satThresh = 40;
+        valThresh = 40;
 
         this.bg = Video.createBackgroundSubtractorMOG2();
 
@@ -66,25 +74,44 @@ public class DetectionMain  {
 
         croppedWorkRegion = croppedBlackBars.clone();
 
-
-        croppedWorkRegion.x += 0.05 * croppedBlackBars.width;
-        croppedWorkRegion.y += 0.05 * croppedBlackBars.height;
-        croppedWorkRegion.height = (int) (0.90 * croppedBlackBars.height);
-        croppedWorkRegion.width = (int) (0.90 * croppedBlackBars.width);
+        croppedWorkRegion.x += (1-workFieldPercentage)/2.0 * croppedBlackBars.width;
+        croppedWorkRegion.y += (1-workFieldPercentage)/2.0 * croppedBlackBars.height;
+        croppedWorkRegion.height = (int) (workFieldPercentage * croppedBlackBars.height);
+        croppedWorkRegion.width = (int) (workFieldPercentage * croppedBlackBars.width);
 
 
         System.out.println(croppedWorkRegion);
 
         capImg = getCroppedImg(rawImg, croppedBlackBars);
+        Imgproc.cvtColor(capImg,imgFin, Imgproc.COLOR_BGR2GRAY);
 
+        tailleMax = new Dimension(croppedBlackBars.width, croppedBlackBars.height);
         tailleCam= new Dimension( croppedWorkRegion.width, croppedWorkRegion.height);
+        screenSize= Toolkit.getDefaultToolkit().getScreenSize();
+
         System.out.println("width " +tailleCam.getWidth()+ " height " + tailleCam.getHeight());
 
         initialImg = (BufferedImage) HighGui.toBufferedImage(capImg);
 
         centerHistory = new ArrayList<Point>();
+        centerHistory.add(new Point(-1,-1));
+        lastCenter = new Point(-1,-1);
 
-        setBestHue();
+        try {
+
+            myRobot = new Robot();
+            myRobot.setAutoDelay(30);
+            myRobot.setAutoWaitForIdle(true);
+
+        } catch (AWTException e) {
+            e.printStackTrace();
+            System.out.println("Coulnd't initialise robot");
+        }
+
+        coeffX= ((double) screenSize.getWidth())/tailleCam.getWidth();
+        coeffY= ((double) screenSize.getHeight())/ tailleCam.getHeight();
+
+
     }
 
 
@@ -98,11 +125,11 @@ public class DetectionMain  {
 
             Core.flip(rawImg, rawImg,1);
 
-            capImg = getCroppedImg(rawImg, croppedWorkRegion);
+            colMask = getFilteredImage(rawImg, new Scalar(hue - hueThresh, satThresh, valThresh), new Scalar(hue + hueThresh, 255, 255));
 
-            colMask = getFilteredImage(capImg, new Scalar(hue - hueThresh, satThresh, valThresh), new Scalar(hue + hueThresh, 255, 255));
+            capImg = subBackground(colMask, bg);
 
-            imgFin = subBackground(colMask, bg);
+            imgFin = getCroppedImg(capImg, croppedWorkRegion);
 
             Point[] ext = findExtPoints(imgFin);
 
@@ -111,34 +138,23 @@ public class DetectionMain  {
             if(center.x != -1) {
                 handDetected = true;
 
-                if(centerHistory.size() > 4 && (Math.abs(center.x-centerHistory.get(0).x) > 2 || Math.abs(center.y-centerHistory.get(0).y) > 2)) {
+
                     centerHistory.add(0, center);
                     //System.out.println(centerHistory.size());
-                }else{
-                    centerHistory.add(0, center);
-                }
 
-                if (centerHistory.size() > 5)
+                if (centerHistory.size() > 7)
                     centerHistory.remove(centerHistory.size() - 1);
             }else{
                 handDetected = false;
             }
 
 
-            Imgproc.cvtColor(imgFin, imgFin, Imgproc.COLOR_GRAY2BGR);
 
             p = hannWindow(centerHistory);
-            Imgproc.rectangle(imgFin, ext[0], ext[1], new Scalar(0, 255, 0));
-            Imgproc.circle(imgFin, center, 5, new Scalar(255,0,0));
-            Imgproc.circle( imgFin, p, 5, new Scalar(255,0,255));
 
-            Imgproc.rectangle(rawImg, croppedWorkRegion, new Scalar(0,0,255));
+            lastCenter = p;
+            detectedRegion = Imgproc.boundingRect(new MatOfPoint(ext));
 
-            initialImg = (BufferedImage) HighGui.toBufferedImage(rawImg);
-            modifiedImg = (BufferedImage) HighGui.toBufferedImage(imgFin);
-
-
-            //p = center;
 
         }else{
 
@@ -306,12 +322,12 @@ public class DetectionMain  {
             Collections.sort(yCoordinates);
 
             if (xCoordinates.size()%2==0) {
-                mass.x = (int)(xCoordinates.get((xCoordinates.size()/ 2)) + xCoordinates.get((xCoordinates.size()/ 2)+1))/2;
+                mass.x = (int)(xCoordinates.get((xCoordinates.size()/ 2 - 1)) + xCoordinates.get((xCoordinates.size()/ 2)))/2;
             } else {
                 mass.x= (int) xCoordinates.get(xCoordinates.size()/2);
             }
             if (yCoordinates.size()%2==0) {
-                mass.y=  (int)(yCoordinates.get((yCoordinates.size()/ 2)) + yCoordinates.get((yCoordinates.size()/ 2)+1))/2;
+                mass.y=  (int)(yCoordinates.get((yCoordinates.size()/ 2 -1)) + yCoordinates.get((yCoordinates.size()/ 2)))/2;
             } else{
                 mass.y= (int) yCoordinates.get(yCoordinates.size()/2);
             }
@@ -387,11 +403,32 @@ public class DetectionMain  {
     }
 
     public BufferedImage getInitialImg() {
+
+        Imgproc.rectangle(rawImg, croppedWorkRegion, new Scalar(0,0,255));
+        initialImg = (BufferedImage) HighGui.toBufferedImage(rawImg);
+
         return initialImg;
     }
 
     public BufferedImage getModifiedImg(){
+
+        Mat tmp = new Mat();
+
+        Imgproc.cvtColor(imgFin, tmp, Imgproc.COLOR_GRAY2BGR);
+        Imgproc.rectangle(tmp, detectedRegion, new Scalar(0, 255, 0));
+        Imgproc.circle(tmp, centerHistory.get(0), 5, new Scalar(255,0,0));
+        Imgproc.circle( tmp, lastCenter, 5, new Scalar(255,0,255));
+
+        modifiedImg = (BufferedImage) HighGui.toBufferedImage(tmp);
+
         return modifiedImg;
+    }
+
+    public void moveMouse(){
+
+        if(handDetected == true && panic ==false) {
+            myRobot.mouseMove((int) (coeffX * lastCenter.x), (int) (coeffY * lastCenter.y));
+        }
     }
 
     public int getHue() {
@@ -451,6 +488,64 @@ public class DetectionMain  {
 
     }
 
+    public void setWorkFieldPercentage(double d){
+
+        workFieldPercentage = d;
+        croppedWorkRegion = croppedBlackBars.clone();
+
+
+        croppedWorkRegion.x += (1-workFieldPercentage)/2.0 * croppedBlackBars.width;
+        croppedWorkRegion.y += (1-workFieldPercentage)/2.0 * croppedBlackBars.height;
+        croppedWorkRegion.height = (int) (workFieldPercentage * croppedBlackBars.height);
+        croppedWorkRegion.width = (int) (workFieldPercentage * croppedBlackBars.width);
+
+        tailleCam= new Dimension( croppedWorkRegion.width, croppedWorkRegion.height);
+
+        coeffX = ((double) screenSize.getWidth()) / tailleCam.getWidth();
+        coeffY = ((double) screenSize.getHeight()) / tailleCam.getHeight();
+
+        System.out.println("Position et taille de la région de travail :" + croppedWorkRegion);
+
+    }
+
+    public double getWorkFieldPercentage(){
+        return workFieldPercentage;
+    }
+
+    public void setWorkFieldOffsetX(int x){
+
+        croppedWorkRegion.x = croppedBlackBars.x + x;
+
+    }
+
+    public void setWorkFieldOffsetY(int y){
+
+        croppedWorkRegion.y = croppedBlackBars.y + y;
+    }
+
+    public int getWorkFieldOffsetX(){
+
+        return (croppedWorkRegion.x- croppedBlackBars.x);
+
+    }
+
+    public int getWorkFieldOffsetY(){
+
+
+        return (croppedWorkRegion.y-croppedBlackBars.y);
+    }
+
+
+    public void resetWorkField(){
+
+        croppedWorkRegion = croppedBlackBars.clone();
+
+    }
+
+    public Dimension getTailleMax(){
+
+        return tailleMax;
+    }
 }
 
 

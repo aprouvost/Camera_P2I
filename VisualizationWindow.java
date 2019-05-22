@@ -14,10 +14,28 @@ public class VisualizationWindow extends JFrame implements ActionListener, Chang
     private JSlider hue, hueThresh, satThresh, valThresh;
     private JButton resetHue;
     private JLabel img1, img2;
+    private JSpinner workPercentage, offsetX, offsetY;
     private boolean panic= false;
 
-
     private DetectionMain detector;
+
+    public static void main(String[] args) {
+
+        DetectionMain dec = new DetectionMain();
+        VisualizationWindow v = new VisualizationWindow(dec);
+
+        while(true) {
+
+            dec.getHandCoordinates();
+
+            if (!v.isFocused()) {
+                dec.moveMouse();
+            } else {
+                v.update();
+            }
+        }
+
+    }
 
     public VisualizationWindow(DetectionMain d)  {
 
@@ -26,14 +44,19 @@ public class VisualizationWindow extends JFrame implements ActionListener, Chang
         modifiedImage = d.getModifiedImg();
 
         img1 = new JLabel();
+
         img2 = new JLabel();
 
         content = new JPanel();
         content.setLayout(new FlowLayout());
 
+        workPercentage = new JSpinner(new SpinnerNumberModel(detector.getWorkFieldPercentage() * 100, 0,100,1));
+
 
         JPanel tweaks = new JPanel(); //Le panel pour les sliders
         tweaks.setLayout(new BoxLayout(tweaks, BoxLayout.Y_AXIS));
+        tweaks.setBackground(Color.gray);
+        tweaks.setBorder(BorderFactory.createEmptyBorder(10,10,10,10));
 
 
         /*
@@ -44,14 +67,14 @@ public class VisualizationWindow extends JFrame implements ActionListener, Chang
         Les 3 autres modifient les thresholds pour chaque paramètre.
          */
 
-        hue = new JSlider(0, 180, 60); //Valeur initiale : vert pur
+        hue = new JSlider(0, 180, d.getHue()); //Valeur initiale : vert pur
         hue.add(new JLabel(("Hue")));
         hue.setMajorTickSpacing(10);
         hue.setMinorTickSpacing(1);
         hue.setPaintTicks(true);
         hue.addChangeListener(this);
 
-        hueThresh = new JSlider(0, 180, 5);
+        hueThresh = new JSlider(0, 180, d.getHueThresh());
         hueThresh.add(new JLabel(("Hue threshold")));
         hueThresh.add(new JLabel(("Hue")));
         hueThresh.setMajorTickSpacing(10);
@@ -59,7 +82,7 @@ public class VisualizationWindow extends JFrame implements ActionListener, Chang
         hueThresh.setPaintTicks(true);
         hueThresh.addChangeListener(this);
 
-        satThresh = new JSlider(0, 255, 100);
+        satThresh = new JSlider(0, 255, d.getSatThresh());
         satThresh.add(new JLabel(("Saturation threshold")));
         satThresh.add(new JLabel(("Hue")));
         satThresh.setMajorTickSpacing(10);
@@ -67,12 +90,20 @@ public class VisualizationWindow extends JFrame implements ActionListener, Chang
         satThresh.setPaintTicks(true);
         satThresh.addChangeListener(this);
 
-        valThresh = new JSlider(0, 255, 100);
+        valThresh = new JSlider(0, 255, d.getValThresh());
         valThresh.add(new JLabel(("Value threshold")));
         valThresh.setMajorTickSpacing(10);
         valThresh.setMinorTickSpacing(1);
         valThresh.setPaintTicks(true);
         valThresh.addChangeListener(this);
+
+        workPercentage = new JSpinner(new SpinnerNumberModel(detector.getWorkFieldPercentage() * 100, 0,100,1));
+        workPercentage.addChangeListener(this);
+
+        offsetX = new JSpinner(new SpinnerNumberModel(detector.getWorkFieldOffsetX(), 0, detector.getTailleMax().width - detector.getDimension().width, 1));
+        offsetX.addChangeListener(this);
+        offsetY = new JSpinner(new SpinnerNumberModel(detector.getWorkFieldOffsetY(), 0, detector.getTailleMax().height - detector.getDimension().height, 1));
+        offsetY.addChangeListener(this);
 
         //Le bouton pour recalculer le meilleur hue
         resetHue = new JButton("Reset Hue");
@@ -86,7 +117,11 @@ public class VisualizationWindow extends JFrame implements ActionListener, Chang
         tweaks.add(hueThresh);
         tweaks.add(satThresh);
         tweaks.add(valThresh);
+        tweaks.add(workPercentage);
+        tweaks.add(offsetX);
+        tweaks.add(offsetY);
         tweaks.add(resetHue);
+
 
         content.add(img1);
         content.add(img2);
@@ -100,20 +135,42 @@ public class VisualizationWindow extends JFrame implements ActionListener, Chang
     }
     public void actionPerformed(ActionEvent e) {
 
-        detector.setBestHue();
+        if(e.getSource() == resetHue){
 
-        hue.setValue(detector.getHue());
+            detector.setBestHue();
+
+            hue.setValue(detector.getHue());
+
+        }
 
 
     }
 
     public void stateChanged(ChangeEvent e){
 
-        detector.setHue(hue.getValue());
-        System.out.println("Hue :" + hue.getValue());
-        detector.setHueThresh(hueThresh.getValue());
-        detector.setSatThresh(satThresh.getValue());
-        detector.setValThresh(valThresh.getValue());
+        if(e.getSource() != workPercentage && e.getSource() != offsetX && e.getSource()!= offsetY) {
+            detector.setHue(hue.getValue());
+            System.out.println("Hue :" + hue.getValue());
+            detector.setHueThresh(hueThresh.getValue());
+            detector.setSatThresh(satThresh.getValue());
+            detector.setValThresh(valThresh.getValue());
+        }else{
+
+            if(e.getSource() == workPercentage)
+            detector.setWorkFieldPercentage(((Double) workPercentage.getValue()).doubleValue() / 100.0);
+
+
+
+                if (e.getSource() == offsetX)
+                    detector.setWorkFieldOffsetX(((Integer) offsetX.getValue()).intValue());
+                if (e.getSource() == offsetY)
+                    detector.setWorkFieldOffsetY(((Integer) offsetY.getValue()).intValue());
+
+                offsetX.setModel(new SpinnerNumberModel(detector.getWorkFieldOffsetX(), 0, detector.getTailleMax().width - detector.getDimension().width, 1));
+                offsetY.setModel(new SpinnerNumberModel(detector.getWorkFieldOffsetY(), 0, detector.getTailleMax().height - detector.getDimension().height, 1));
+            }
+
+
 
     }
 
@@ -153,4 +210,5 @@ public class VisualizationWindow extends JFrame implements ActionListener, Chang
         System.out.println(e);
     }
     public void keyTyped( KeyEvent e){}
+
 }

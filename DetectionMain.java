@@ -29,7 +29,7 @@ public class DetectionMain  {
     private boolean handDetected = false, panic = false;
     private Dimension tailleMax, tailleCam, screenSize;
     private Rect croppedBlackBars, croppedWorkRegion, detectedRegion;
-    private double workFieldPercentage = 0.85;
+    private double workFieldPercentage = 0.85, vx =0;
     private Point lastCenter;
     private Robot myRobot;
     private double coeffX, coeffY;
@@ -62,6 +62,7 @@ public class DetectionMain  {
         hueThresh = 5;
         satThresh = 40;
         valThresh = 40;
+        vx = 0;
 
         this.bg = Video.createBackgroundSubtractorMOG2();
 
@@ -100,8 +101,8 @@ public class DetectionMain  {
         try {
 
             myRobot = new Robot();
-            myRobot.setAutoDelay(30);
-            myRobot.setAutoWaitForIdle(true);
+            //myRobot.setAutoDelay(30);
+            //myRobot.setAutoWaitForIdle(true);
 
         } catch (AWTException e) {
             e.printStackTrace();
@@ -138,9 +139,14 @@ public class DetectionMain  {
             if(center.x != -1) {
                 handDetected = true;
 
+                if(centerHistory.size() > 4) {
 
+                    if((Math.abs(center.x-centerHistory.get(0).x) > 2 || Math.abs(center.y-centerHistory.get(0).y) > 2))
                     centerHistory.add(0, center);
-                    //System.out.println(centerHistory.size());
+
+                }else{
+                    centerHistory.add(0, center);
+                }
 
                 if (centerHistory.size() > 7)
                     centerHistory.remove(centerHistory.size() - 1);
@@ -424,11 +430,30 @@ public class DetectionMain  {
         return modifiedImg;
     }
 
-    public void moveMouse(){
+    public void moveMouse(boolean isGrabbing){
 
-        if(handDetected == true && panic ==false) {
+        double tmp = lastCenter.x;
+        getHandCoordinates();
+
+        if(panic == false && isGrabbing == false && handDetected == true) {
+
+            vx *= 0.8;
             myRobot.mouseMove((int) (coeffX * lastCenter.x), (int) (coeffY * lastCenter.y));
+
+        }else{
+            vx = lastCenter.x - tmp;
         }
+
+
+        if(panic == false) {
+            myRobot.mouseWheel((int) vx);
+            System.out.println("vx : " + vx);
+        }
+
+    }
+
+    public void setPanic(boolean b){
+        panic = b;
     }
 
     public int getHue() {
@@ -545,6 +570,40 @@ public class DetectionMain  {
     public Dimension getTailleMax(){
 
         return tailleMax;
+    }
+
+    public void loadPreferences(String[] args){
+
+        if(args.length != 7){
+
+            System.out.println("Mauvais nombre d'arguments, aucun chargement effectué");
+
+        }else{
+
+            hue = Integer.parseInt(args[0]);
+            hueThresh = Integer.parseInt(args[1]);
+            satThresh = Integer.parseInt(args[2]);
+            valThresh = Integer.parseInt(args[3]);
+            setWorkFieldPercentage(Double.parseDouble(args[4]));
+            setWorkFieldOffsetX(Integer.parseInt(args[5]));
+            setWorkFieldOffsetY(Integer.parseInt(args[6]));
+        }
+
+    }
+
+    public String[] readPreferences(){
+
+        String[] ret = new String[7];
+
+        ret[0] = String.valueOf(hue);
+        ret[1] = String.valueOf(hueThresh);
+        ret[2] = String.valueOf(satThresh);
+        ret[3] = String.valueOf(valThresh);
+        ret[4] = String.valueOf(workFieldPercentage);
+        ret[5] = String.valueOf(getWorkFieldOffsetX());
+        ret[6] = String.valueOf(getWorkFieldOffsetY());
+
+        return ret;
     }
 }
 

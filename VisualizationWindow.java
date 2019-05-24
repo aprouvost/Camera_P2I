@@ -26,11 +26,12 @@ public class VisualizationWindow extends JFrame implements ActionListener, Chang
 
         while(true) {
 
-            dec.getHandCoordinates();
-
             if (!v.isFocused()) {
-                dec.moveMouse();
+                dec.setPanic(false);
+                dec.moveMouse(true);
             } else {
+                dec.setPanic(true);
+                dec.moveMouse(true);
                 v.update();
             }
         }

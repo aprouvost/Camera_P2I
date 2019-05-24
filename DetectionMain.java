@@ -572,6 +572,14 @@ public class DetectionMain  {
         return tailleMax;
     }
 
+    public boolean cameraIsOpened(){
+        if (!capture.isOpened()) {
+            return false;
+        } else{
+            return true;
+        }
+    }
+
     public void loadPreferences(String[] args){
 
         if(args.length != 7){

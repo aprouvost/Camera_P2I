@@ -7,7 +7,7 @@ import java.awt.*;
 import java.awt.event.*;
 import java.awt.image.BufferedImage;
 
-public class VisualizationWindow extends JFrame implements ActionListener, ChangeListener, KeyListener  {
+public class VisualizationWindow extends JFrame implements ActionListener, ChangeListener  {
 
     private BufferedImage initialImage, modifiedImage;
     private JPanel content, tweaks;
@@ -15,7 +15,8 @@ public class VisualizationWindow extends JFrame implements ActionListener, Chang
     private JButton resetHue;
     private JLabel img1, img2;
     private JSpinner workPercentage, offsetX, offsetY;
-    private boolean panic= false;
+    private boolean stopThread = false;
+
 
     private DetectionMain detector;
 
@@ -24,17 +25,6 @@ public class VisualizationWindow extends JFrame implements ActionListener, Chang
         DetectionMain dec = new DetectionMain();
         VisualizationWindow v = new VisualizationWindow(dec);
 
-        while(true) {
-
-            if (!v.isFocused()) {
-                dec.setPanic(false);
-                dec.moveMouse(true);
-            } else {
-                dec.setPanic(true);
-                dec.moveMouse(true);
-                v.update();
-            }
-        }
 
     }
 
@@ -128,11 +118,50 @@ public class VisualizationWindow extends JFrame implements ActionListener, Chang
         content.add(img2);
         content.add(tweaks);
 
-        setDefaultCloseOperation(WindowConstants.EXIT_ON_CLOSE);
+        this.addWindowListener(new WindowAdapter() {
+            @Override
+            public void windowClosing(WindowEvent e) {
+                stopThread = true;
+                System.out.println("Visualization window is closing");
+            }
+        });
+
+        setDefaultCloseOperation(WindowConstants.DISPOSE_ON_CLOSE);
         setContentPane(content);
         pack();
         setVisible(true);
 
+        Thread updateThread = new Thread(new Runnable() {
+            @Override
+            public void run() {
+
+                while(stopThread == false) {
+
+                    if (!isFocused()) {
+                        d.setPanic(false);
+                        d.moveMouse();
+                    } else {
+                        d.setPanic(true);
+                        d.moveMouse();
+                        update();
+                    }
+
+                }
+            }
+        });
+
+        updateThread.start();
+
+        while (updateThread.isAlive()){
+
+            try {
+                Thread.sleep(40);
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+
+        }
+        this.dispose();
     }
     public void actionPerformed(ActionEvent e) {
 
@@ -192,24 +221,6 @@ public class VisualizationWindow extends JFrame implements ActionListener, Chang
 
 
 
-    public boolean getPanic(){
-        return panic;
-    }
 
-    public void keyPressed(KeyEvent e){
-        if (e.getKeyCode() == KeyEvent.VK_ESCAPE) {
-            panic=true;
-            System.out.println("Panic");
-        }
-    }
-
-    public void keyReleased( KeyEvent e){
-        if (e.getKeyCode() == KeyEvent.VK_ESCAPE) {
-            panic=false;
-            System.out.println("Released Panic");
-        }
-        System.out.println(e);
-    }
-    public void keyTyped( KeyEvent e){}
 
 }

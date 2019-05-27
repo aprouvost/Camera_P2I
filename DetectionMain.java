@@ -29,7 +29,7 @@ public class DetectionMain  {
     private boolean handDetected = false, panic = false;
     private Dimension tailleMax, tailleCam, screenSize;
     private Rect croppedBlackBars, croppedWorkRegion, detectedRegion;
-    private double workFieldPercentage = 0.85, vx =0;
+    private double workFieldPercentage = 0.85;
     private Point lastCenter;
     private Robot myRobot;
     private double coeffX, coeffY;
@@ -62,7 +62,6 @@ public class DetectionMain  {
         hueThresh = 5;
         satThresh = 40;
         valThresh = 40;
-        vx = 0;
 
         this.bg = Video.createBackgroundSubtractorMOG2();
 
@@ -430,25 +429,12 @@ public class DetectionMain  {
         return modifiedImg;
     }
 
-    public void moveMouse(boolean isGrabbing){
+    public void moveMouse(){
 
-        double tmp = lastCenter.x;
         getHandCoordinates();
 
-        if(panic == false && isGrabbing == false && handDetected == true) {
-
-            vx *= 0.8;
+        if(panic == false && handDetected == true)
             myRobot.mouseMove((int) (coeffX * lastCenter.x), (int) (coeffY * lastCenter.y));
-
-        }else{
-            vx = lastCenter.x - tmp;
-        }
-
-
-        if(panic == false) {
-            myRobot.mouseWheel((int) vx);
-            System.out.println("vx : " + vx);
-        }
 
     }
 

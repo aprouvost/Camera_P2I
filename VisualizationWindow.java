@@ -7,7 +7,7 @@ import java.awt.*;
 import java.awt.event.*;
 import java.awt.image.BufferedImage;
 
-public class VisualizationWindow extends JFrame implements ActionListener, ChangeListener  {
+public class VisualizationWindow extends JFrame implements ActionListener, ChangeListener, Runnable  {
 
     private BufferedImage initialImage, modifiedImage;
     private JPanel content, tweaks;
@@ -16,6 +16,7 @@ public class VisualizationWindow extends JFrame implements ActionListener, Chang
     private JLabel img1, img2;
     private JSpinner workPercentage, offsetX, offsetY;
     private boolean stopThread = false;
+    private  Thread updateThread;
 
 
     private DetectionMain detector;
@@ -24,13 +25,31 @@ public class VisualizationWindow extends JFrame implements ActionListener, Chang
 
         DetectionMain dec = new DetectionMain();
         VisualizationWindow v = new VisualizationWindow(dec);
+        (new Thread(v)).start();
 
+
+    }
+
+    public void run(){
+
+        while (updateThread.isAlive()){
+
+            try {
+                Thread.sleep(40);
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+
+            System.out.println("d3");
+        }
+        this.dispose();
 
     }
 
     public VisualizationWindow(DetectionMain d)  {
 
         detector  = d;
+        System.out.println("d1");
         initialImage = d.getInitialImg();
         modifiedImage = d.getModifiedImg();
 
@@ -131,7 +150,7 @@ public class VisualizationWindow extends JFrame implements ActionListener, Chang
         pack();
         setVisible(true);
 
-        Thread updateThread = new Thread(new Runnable() {
+        updateThread = new Thread(new Runnable() {
             @Override
             public void run() {
 
@@ -146,22 +165,13 @@ public class VisualizationWindow extends JFrame implements ActionListener, Chang
                         update();
                     }
 
+                    System.out.println("d2");
                 }
             }
         });
 
         updateThread.start();
 
-        while (updateThread.isAlive()){
-
-            try {
-                Thread.sleep(40);
-            } catch (InterruptedException e) {
-                e.printStackTrace();
-            }
-
-        }
-        this.dispose();
     }
     public void actionPerformed(ActionEvent e) {
 

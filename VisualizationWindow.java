@@ -40,7 +40,7 @@ public class VisualizationWindow extends JFrame implements ActionListener, Chang
                 e.printStackTrace();
             }
 
-            System.out.println("d3");
+
         }
         this.dispose();
 
@@ -165,7 +165,7 @@ public class VisualizationWindow extends JFrame implements ActionListener, Chang
                         update();
                     }
 
-                    System.out.println("d2");
+
                 }
             }
         });

@@ -140,7 +140,7 @@ public class DetectionMain  {
 
                 if(centerHistory.size() > 4) {
 
-                    if((Math.abs(center.x-centerHistory.get(0).x) > 2 || Math.abs(center.y-centerHistory.get(0).y) > 2))
+                    if((Math.abs(center.x-centerHistory.get(0).x) > 1 || Math.abs(center.y-centerHistory.get(0).y) > 1))
                     centerHistory.add(0, center);
 
                 }else{

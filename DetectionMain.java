@@ -26,9 +26,9 @@ public class DetectionMain  {
     private int hue, hueThresh, valThresh, satThresh;
     private  VideoCapture capture;
     private ArrayList<Point> centerHistory;
-    private boolean handDetected = false, panic = false;
+    private boolean handDetected = false, panic = false, drawHueRegion = false;
     private Dimension tailleMax, tailleCam, screenSize;
-    private Rect croppedBlackBars, croppedWorkRegion, detectedRegion;
+    private Rect croppedBlackBars, croppedWorkRegion, detectedRegion, setHueRegion;
     private double workFieldPercentage = 0.85;
     private Point lastCenter;
     private Robot myRobot;
@@ -79,6 +79,12 @@ public class DetectionMain  {
         croppedWorkRegion.height = (int) (workFieldPercentage * croppedBlackBars.height);
         croppedWorkRegion.width = (int) (workFieldPercentage * croppedBlackBars.width);
 
+        setHueRegion = croppedWorkRegion.clone();
+
+        setHueRegion.x += (1-0.1)/2.0 * croppedWorkRegion.width;
+        setHueRegion.y += (1-0.1)/2.0 * croppedWorkRegion.height;
+        setHueRegion.width = (int) (0.1 * croppedWorkRegion.width);
+        setHueRegion.height = (int) (0.1 * croppedWorkRegion.height);
 
         System.out.println(croppedWorkRegion);
 
@@ -202,6 +208,7 @@ public class DetectionMain  {
                 }
             }
 
+            imgTest[i] = getCroppedImg(imgTest[i], setHueRegion);
 
         }
 
@@ -253,9 +260,9 @@ public class DetectionMain  {
         Mat matDiff = new Mat();
         Mat matRet = new Mat();
 
-        bs.apply(img, bgMask, -1); //Il faut trouver une bonne valeur du learning rate
+        //bs.apply(img, bgMask, 0.7); //Il faut trouver une bonne valeur du learning rate
 
-        Core.copyTo(img, matDiff, bgMask);
+        matDiff = img.clone();
 
         Imgproc.medianBlur(matDiff, matDiff, 3); //Filtre médian
 
@@ -410,8 +417,11 @@ public class DetectionMain  {
     public BufferedImage getInitialImg() {
 
         Imgproc.rectangle(rawImg, croppedWorkRegion, new Scalar(0,0,255));
-        initialImg = (BufferedImage) HighGui.toBufferedImage(rawImg);
 
+        if(drawHueRegion)
+            Imgproc.rectangle(rawImg,setHueRegion, new Scalar(0,255,0));
+
+        initialImg = (BufferedImage) HighGui.toBufferedImage(rawImg);
         return initialImg;
     }
 
@@ -510,6 +520,13 @@ public class DetectionMain  {
         croppedWorkRegion.height = (int) (workFieldPercentage * croppedBlackBars.height);
         croppedWorkRegion.width = (int) (workFieldPercentage * croppedBlackBars.width);
 
+        setHueRegion = croppedWorkRegion.clone();
+
+        setHueRegion.x += (1-0.5)/2.0 * croppedWorkRegion.width;
+        setHueRegion.y += (1-0.5)/2.0 * croppedWorkRegion.height;
+        setHueRegion.width = (int) (0.5 * croppedWorkRegion.width);
+        setHueRegion.height = (int) (0.5 * croppedWorkRegion.height);
+
         tailleCam= new Dimension( croppedWorkRegion.width, croppedWorkRegion.height);
 
         coeffX = ((double) screenSize.getWidth()) / tailleCam.getWidth();
@@ -598,6 +615,12 @@ public class DetectionMain  {
         ret[6] = String.valueOf(getWorkFieldOffsetY());
 
         return ret;
+    }
+
+    public void drawHueRegion(boolean b){
+
+        drawHueRegion = b;
+
     }
 }
 

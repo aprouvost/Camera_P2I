@@ -117,6 +117,17 @@ public class VisualizationWindow extends JFrame implements ActionListener, Chang
 
         //Le bouton pour recalculer le meilleur hue
         resetHue = new JButton("Reset Hue");
+        resetHue.addMouseListener(new MouseAdapter() {
+            @Override
+            public void mouseEntered(MouseEvent e) {
+                detector.drawHueRegion(true);
+            }
+
+            @Override
+            public void mouseExited(MouseEvent e) {
+                detector.drawHueRegion(false);
+            }
+        });
         resetHue.addActionListener(this);
 
         // Ajout panic button
@@ -178,6 +189,8 @@ public class VisualizationWindow extends JFrame implements ActionListener, Chang
         if(e.getSource() == resetHue){
 
             detector.setBestHue();
+
+
 
             hue.setValue(detector.getHue());
 

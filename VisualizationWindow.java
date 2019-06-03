@@ -15,6 +15,7 @@ public class VisualizationWindow extends JFrame implements ActionListener, Chang
     private JButton resetHue;
     private JLabel img1, img2;
     private JSpinner workPercentage, offsetX, offsetY;
+    private JCheckBox subBg;
     private boolean stopThread = false;
     private  Thread updateThread;
 
@@ -49,7 +50,6 @@ public class VisualizationWindow extends JFrame implements ActionListener, Chang
     public VisualizationWindow(DetectionMain d)  {
 
         detector  = d;
-        System.out.println("d1");
         initialImage = d.getInitialImg();
         modifiedImage = d.getModifiedImg();
 
@@ -64,7 +64,10 @@ public class VisualizationWindow extends JFrame implements ActionListener, Chang
 
 
         JPanel tweaks = new JPanel(); //Le panel pour les sliders
-        tweaks.setLayout(new BoxLayout(tweaks, BoxLayout.Y_AXIS));
+        GridLayout layoutTweaks = new GridLayout(8,2);
+        layoutTweaks.setHgap(5);
+        layoutTweaks.setVgap(2);
+        tweaks.setLayout(layoutTweaks);
         tweaks.setBackground(Color.gray);
         tweaks.setBorder(BorderFactory.createEmptyBorder(10,10,10,10));
 
@@ -78,11 +81,12 @@ public class VisualizationWindow extends JFrame implements ActionListener, Chang
          */
 
         hue = new JSlider(0, 180, d.getHue()); //Valeur initiale : vert pur
-        hue.add(new JLabel(("Hue")));
         hue.setMajorTickSpacing(10);
         hue.setMinorTickSpacing(1);
         hue.setPaintTicks(true);
         hue.addChangeListener(this);
+
+
 
         hueThresh = new JSlider(0, 180, d.getHueThresh());
         hueThresh.add(new JLabel(("Hue threshold")));
@@ -130,18 +134,28 @@ public class VisualizationWindow extends JFrame implements ActionListener, Chang
         });
         resetHue.addActionListener(this);
 
-        // Ajout panic button
+        subBg = new JCheckBox("Soustraire arrière-plan");
+        subBg.setBackground(Color.gray);
+        subBg.addActionListener(this);
 
 
 
         tweaks.add(hue);
+        tweaks.add(new JLabel(("Hue")));
         tweaks.add(hueThresh);
+        tweaks.add(new JLabel("Threshold for hue"));
         tweaks.add(satThresh);
+        tweaks.add(new JLabel("Threshold for saturation"));
         tweaks.add(valThresh);
+        tweaks.add(new JLabel("Threshold for value"));
         tweaks.add(workPercentage);
+        tweaks.add(new JLabel("Pourcentage de l'image utilisée"));
         tweaks.add(offsetX);
+        tweaks.add(new JLabel("Offset horizontal"));
         tweaks.add(offsetY);
+        tweaks.add(new JLabel("Offset vertical"));
         tweaks.add(resetHue);
+        tweaks.add(subBg);
 
 
         content.add(img1);
@@ -189,10 +203,12 @@ public class VisualizationWindow extends JFrame implements ActionListener, Chang
         if(e.getSource() == resetHue){
 
             detector.setBestHue();
-
-
-
             hue.setValue(detector.getHue());
+
+        }
+        if(e.getSource() == subBg){
+
+            detector.setSubBackground(subBg.isSelected());
 
         }
 

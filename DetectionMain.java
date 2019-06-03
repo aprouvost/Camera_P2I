@@ -26,10 +26,10 @@ public class DetectionMain  {
     private int hue, hueThresh, valThresh, satThresh;
     private  VideoCapture capture;
     private ArrayList<Point> centerHistory;
-    private boolean handDetected = false, panic = false, drawHueRegion = false;
+    private boolean handDetected = false, panic = false, drawHueRegion = false, subBackground = false;
     private Dimension tailleMax, tailleCam, screenSize;
     private Rect croppedBlackBars, croppedWorkRegion, detectedRegion, setHueRegion;
-    private double workFieldPercentage = 0.85;
+    private double workFieldPercentage = 0.8;
     private Point lastCenter;
     private Robot myRobot;
     private double coeffX, coeffY;
@@ -58,7 +58,7 @@ public class DetectionMain  {
 
         detectedRegion = new Rect();
 
-        hue = 75;
+        hue = 86;
         hueThresh = 5;
         satThresh = 40;
         valThresh = 40;
@@ -81,10 +81,10 @@ public class DetectionMain  {
 
         setHueRegion = croppedWorkRegion.clone();
 
-        setHueRegion.x += (1-0.1)/2.0 * croppedWorkRegion.width;
-        setHueRegion.y += (1-0.1)/2.0 * croppedWorkRegion.height;
-        setHueRegion.width = (int) (0.1 * croppedWorkRegion.width);
-        setHueRegion.height = (int) (0.1 * croppedWorkRegion.height);
+        setHueRegion.x += (1-0.5)/2.0 * croppedWorkRegion.width;
+        setHueRegion.y += (1-0.5)/2.0 * croppedWorkRegion.height;
+        setHueRegion.width = (int) (0.5 * croppedWorkRegion.width);
+        setHueRegion.height = (int) (0.5 * croppedWorkRegion.height);
 
         System.out.println(croppedWorkRegion);
 
@@ -260,9 +260,12 @@ public class DetectionMain  {
         Mat matDiff = new Mat();
         Mat matRet = new Mat();
 
-        //bs.apply(img, bgMask, 0.7); //Il faut trouver une bonne valeur du learning rate
-
-        matDiff = img.clone();
+        if(subBackground == true) {
+            bs.apply(img, bgMask, -1); //Il faut trouver une bonne valeur du learning rate
+            Core.copyTo(img, matDiff, bgMask);
+        }else{
+            matDiff = img;
+        }
 
         Imgproc.medianBlur(matDiff, matDiff, 3); //Filtre médian
 
@@ -621,6 +624,17 @@ public class DetectionMain  {
 
         drawHueRegion = b;
 
+    }
+
+    public void setSubBackground(boolean b){
+
+        subBackground = b;
+
+    }
+
+    public boolean getSubBackground(){
+
+        return subBackground;
     }
 }
 
